@@ -12,6 +12,7 @@ load_dotenv()
 # --- CONFIGURATION ---
 app = Flask(__name__)
 
+
 # Use DATABASE_URL from environment if available (Cloud deployment), otherwise fallback to SQLite (local)
 cloud_db_url = os.environ.get('DATABASE_URL')
 if cloud_db_url:
@@ -1044,4 +1045,5 @@ def reset_password_page():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)

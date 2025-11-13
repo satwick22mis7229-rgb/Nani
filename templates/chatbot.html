@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chatbot Page</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    body {
+      background: url("https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80") no-repeat center center fixed;
+      background-size: cover;
+      height: 100vh;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .chat-wrapper {
+      width: 350px;
+      height: 500px;
+      background-color: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      margin-right: 50px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: #0078ff;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 10px;
+      max-width: 75%;
+    }
+
+    .bot {
+      background-color: #e9e9eb;
+      align-self: flex-start;
+      color: #333;
+    }
+
+    .user {
+      background-color: #0078ff;
+      align-self: flex-end;
+      color: white;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #ddd;
+      background: white;
+    }
+
+    .chat-input input {
+      flex: 1;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      padding: 10px;
+      outline: none;
+    }
+
+    .chat-input button {
+      margin-left: 10px;
+      background-color: #0078ff;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+
+    .logout-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #f44336;
+      border: none;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+
+<body>
+  <button class="logout-btn" onclick="window.location.href='/logout'">Logout</button>
+
+  <div class="chat-wrapper">
+    <div class="chat-header">🤖 MFA Chatbot</div>
+
+    <div id="chatBody" class="chat-body">
+      <div class="message bot">Hi there 👋 I'm your MFA assistant! How can I help you?</div>
+    </div>
+
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const chatBody = document.getElementById("chatBody");
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+
+      // Display user message
+      const userDiv = document.createElement("div");
+      userDiv.classList.add("message", "user");
+      userDiv.textContent = userMessage;
+      chatBody.appendChild(userDiv);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      input.value = "";
+
+      // Send to Flask backend
+      const res = await fetch("/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userMessage }),
+      });
+      const data = await res.json();
+
+      // Display bot reply
+      const botDiv = document.createElement("div");
+      botDiv.classList.add("message", "bot");
+      botDiv.textContent = data.reply;
+      chatBody.appendChild(botDiv);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+  </script>
+</body>
+</html>

@@ -607,40 +607,29 @@ def register():
     }};
 </script>
 """
-    
-    if request.method == "POST":
-        username = request.form["username"].strip()
-        password = request.form["password"]
-        email = request.form["email"].strip()
-        phone = request.form["phone"].strip()
 
-    # ------------ NEW VALIDATION ------------
-    # Check if username exists
-    existing_username = User.query.filter_by(username=username).first()
-    if existing_username:
-        return render_status_page(
-            f'Username "{username}" already exists. Please login instead.',
-            is_error=True
-        )
+    # GET request → show the registration form
+    if request.method == "GET":
+        return render_template_string(register_html)
 
-    # Check if phone already exists
-    existing_phone = User.query.filter_by(phone=phone).first()
-    if existing_phone:
-        return render_status_page(
-            f'Phone number {phone} is already registered. Please login instead.',
-            is_error=True
-        )
+    # POST request → process submitted form
+    username = request.form["username"].strip()
+    password = request.form["password"]
+    email = request.form["email"].strip()
+    phone = request.form["phone"].strip()
 
-    # Check if email exists (optional but recommended)
-    existing_email = User.query.filter_by(email=email).first()
-    if existing_email:
-        return render_status_page(
-            f'Email "{email}" already exists. Try logging in.',
-            is_error=True
-        )
-    # -----------------------------------------
+    # ------------ VALIDATION ---------------
+    if User.query.filter_by(username=username).first():
+        return render_status_page(f'Username "{username}" already exists.', is_error=True)
 
-    # If everything is fine → store in session and go to face scan
+    if User.query.filter_by(phone=phone).first():
+        return render_status_page(f'Phone "{phone}" already registered.', is_error=True)
+
+    if User.query.filter_by(email=email).first():
+        return render_status_page(f'Email "{email}" already registered.', is_error=True)
+    # ---------------------------------------
+
+    # Save data for step 2 (face scan)
     session['registration_data'] = {
         'username': username,
         'password': password,
@@ -655,20 +644,6 @@ def register():
         setup=1
     ))
 
-
-
-@app.route("/save-reference-face", methods=["POST"])
-def save_reference_face():
-    username = request.form["username"].strip()
-    face_data = request.form["face_data"]
-
-    registration_data = session.get('registration_data')
-
-    if not face_data or len(face_data) < 100:
-        return redirect(url_for('face_scan_page',
-                                username=username,
-                                status_message="Failed capture. Please ensure the camera is active and try again.",
-                                setup=1))
 
     # Validate duplicates BEFORE inserting
     if registration_data:
@@ -986,6 +961,54 @@ def face_scan_page():
         button_text=button_text
     )
 
+
+@app.route("/save-reference-face", methods=["POST"])
+def save_reference_face():
+    username = request.form.get("username")
+    face_data = request.form.get("face_data")
+
+    if not username or not face_data:
+        return render_status_page("Missing username or face data.", True)
+
+    registration_data = session.get('registration_data')
+
+    # Ensure user followed registration step
+    if not registration_data or registration_data["username"] != username:
+        return render_status_page("Registration session expired. Please restart.", True)
+
+    # Validate duplicates again
+    if User.query.filter_by(username=registration_data["username"]).first():
+        return render_status_page(f'Username "{username}" already exists.', True)
+
+    if User.query.filter_by(email=registration_data["email"]).first():
+        return render_status_page(f'Email "{registration_data["email"]}" already exists.', True)
+
+    if User.query.filter_by(phone=registration_data["phone"]).first():
+        return render_status_page(f'Phone "{registration_data["phone"]}" already exists.', True)
+
+    try:
+        # Create new user
+        new_user = User(
+            username=registration_data["username"],
+            password=registration_data["password"],
+            email=registration_data["email"],
+            phone=registration_data["phone"],
+            face_data=face_data
+        )
+        db.session.add(new_user)
+        db.session.commit()
+
+        # Clear session
+        session.pop("registration_data", None)
+
+        return render_status_page(
+            f"Registration successful! Face ID saved for {username}. You can now log in.",
+            is_error=False
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        return render_status_page(f"Database error: {e}", True)
 
 @app.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():

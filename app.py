@@ -720,7 +720,8 @@ def login_otp_send():
             return render_status_page(f"SMS Delivery Failed. Twilio status: {verification.status}")
 
     except Exception as e:
-        return render_status_page(f"SMS Delivery Failed: Error connecting to Twilio. Status: {e.__class__.__name__}")
+        return render_status_page(f"Twilio Error: {str(e)}")
+
 
 # 2. OTP LOGIN (Step 2: Verify)
 @app.route("/login-otp-verify", methods=["GET", "POST"])

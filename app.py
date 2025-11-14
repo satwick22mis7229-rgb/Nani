@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string, request, redirect, url_for, session, g
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from twilio.rest import Client
@@ -34,6 +34,7 @@ migrate = Migrate(app, db)
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_VERIFY_SERVICE_SID = os.getenv("TWILIO_VERIFY_SERVICE_SID")
+print("Loaded Verify SID:", TWILIO_VERIFY_SERVICE_SID)
 
 # Initialize Twilio Client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
@@ -385,37 +386,58 @@ face_scan_html = """
 </script>
 """
 
-# 3. NEW FACTOR CHOICE HTML TEMPLATE
+# 3. NEW FACTOR CHOICE HTML TEMPLATE (WITH FORGOT PASSWORD)
 factor_choice_html = """
 <div style="font-family: Arial, sans-serif; max-width: 450px; margin: 50px auto; padding: 25px; border: 1px solid #007bff; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);">
     <h2 style="text-align: center; color: #007bff; margin-bottom: 20px;">Choose Your Login Factor</h2>
     <p style="color: #666; text-align: center; margin-bottom: 20px;">Select one method to authenticate:</p>
     
     <div class="login-buttons">
+
         <a href="{{ url_for('login_password_page') }}" style="text-decoration: none;">
             <button style="width: 100%; padding: 12px; font-size: 16px; background-color: #ff5722; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
                 🔑 Login with Password
             </button>
         </a>
+
         <a href="{{ url_for('login_otp_page') }}" style="text-decoration: none;">
             <button style="width: 100%; padding: 12px; font-size: 16px; background-color: #ffc107; color: #333; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
                 📱 Login with OTP (SMS)
             </button>
         </a>
+
         <a href="{{ url_for('login_face_page') }}" style="text-decoration: none;">
             <button style="width: 100%; padding: 12px; font-size: 16px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
                 👤 Login with Face Scan
             </button>
         </a>
 
+        <!-- ✅ ONLY ONE FORGOT PASSWORD BUTTON -->
+        <a href="{{ url_for('forgot_password') }}" style="text-decoration: none;">
+            <button style="
+                width: 100%;
+                padding: 12px;
+                font-size: 16px;
+                background-color: #673ab7;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-weight: bold;
+                margin-top: 10px;">
+                ❗ Forgot Password
+            </button>
+        </a>
+
         <p style="text-align: center; margin-top: 20px;">
-            <a href="/logout" style="color: #dc3545; text-decoration: none;">Back to Home</a>
+            <a href="/" style="color: #dc3545; text-decoration: none;">Back Home</a>
         </p>
+
     </div>
 </div>
 """
 
-# 4. NEW HTML TEMPLATE: Password Login (Corrected URLs)
+# 4. NEW HTML TEMPLATE: OTP Login (Corrected URLs)
 password_login_html = f"""
 {UI_SCRIPTS}
 <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
@@ -430,42 +452,61 @@ password_login_html = f"""
             <span class="password-toggle" id="loginToggle" onclick="togglePasswordVisibility('loginPassword', 'loginToggle')">👁️</span>
         </div>
         
-        <input type="submit" value="Login" style="padding: 10px; background-color: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+        <input type="submit" value="Login" 
+               style="padding: 10px; background-color: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
     </form>
-    <p style="text-align: center; margin-top: 15px;"><a href="{{{{ url_for('login_factor_choice') }}}}">&larr; Back to Factor Choice</a></p>
+
+    <!-- Forgot Password -->
+    <p style="text-align: center; margin-top: 10px;">
+        <a href="{{ url_for('forgot_password') }}" 
+           style="color:#007bff; text-decoration:none; font-weight:bold;">
+            Forgot Password?
+        </a>
+    </p>
+
+    <!-- Back to choice -->
+    <p style="text-align: center; margin-top: 5px;">
+        <a href="{{ url_for('login_factor_choice') }}">
+            &larr; Back to Factor Choice
+        </a>
+    </p>
+
 </div>
 """
-
-# 5. NEW HTML TEMPLATE: OTP Login (Corrected URLs)
+#5. NEW HTML TEMPLATE: OTP Login (Corrected URLs and IDs)
 otp_login_html = f"""
 {UI_SCRIPTS}
 <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
     <h2 style="text-align: center; color: #ffc107;">Login with OTP</h2>
-    <p style="color: #666; text-align: center;">Enter your username and registered phone to send the OTP.</p>
-    
     <form method="POST" action="{{{{ action_url }}}}" style="display: grid; gap: 10px;">
         <label>Username:</label>
         <input type="text" name="username" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-        
-        <label>Phone:</label>
+
+        <label>Registered Phone:</label>
         <div class="phone-input-group">
-            <select id="loginOtpCountryCode">
+            <select id="otpCountryCode">
                 {generate_country_options(default_code="+91")}
             </select>
-            <input type="text" id="loginOtpPhoneVisibleInput" required placeholder="Enter number (without code)">
-            <input type="hidden" name="phone" id="loginOtpPhoneHiddenInput">
+            <input type="text" id="otpPhoneVisibleInput" required placeholder="Enter number (without code)">
+            <input type="hidden" name="phone" id="otpPhoneHiddenInput">
         </div>
-        
-        <input type="submit" value="Send OTP" style="padding: 10px; background-color: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+
+        <input type="submit" value="Send OTP" 
+               style="padding: 10px; background-color: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
     </form>
-    <p style="text-align: center; margin-top: 15px;"><a href="{{{{ url_for('login_factor_choice') }}}}">&larr; Back to Factor Choice</a></p>
+
+    <p style="text-align: center; margin-top: 10px;">
+        <a href="{{{{ url_for('login_factor_choice') }}}}">&larr; Back to Factor Choice</a>
+    </p>
 </div>
+
 <script>
     window.onload = function() {{
-        setupCountryCode('loginOtpCountryCode', 'loginOtpPhoneVisibleInput', 'loginOtpPhoneHiddenInput');
+        setupCountryCode('otpCountryCode', 'otpPhoneVisibleInput', 'otpPhoneHiddenInput');
     }};
 </script>
 """
+
 
 # 6. NEW HTML TEMPLATE: Face Scan Login (Corrected URLs and IDs)
 face_login_html = f"""
@@ -571,71 +612,102 @@ def register():
         username = request.form["username"].strip()
         password = request.form["password"]
         email = request.form["email"].strip()
-        phone = request.form["phone"].strip() 
+        phone = request.form["phone"].strip()
 
-        # 1. Validation
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            return render_status_page(f'Username "{username}" already exists!')
+    # ------------ NEW VALIDATION ------------
+    # Check if username exists
+    existing_username = User.query.filter_by(username=username).first()
+    if existing_username:
+        return render_status_page(
+            f'Username "{username}" already exists. Please login instead.',
+            is_error=True
+        )
 
-        if not phone.startswith('+') or len(phone) < 5 or not phone[1:].isdigit():
-            return render_status_page('Phone number must be a valid E.164 format (e.g., +911234567890).')
+    # Check if phone already exists
+    existing_phone = User.query.filter_by(phone=phone).first()
+    if existing_phone:
+        return render_status_page(
+            f'Phone number {phone} is already registered. Please login instead.',
+            is_error=True
+        )
 
-        # 2. Store data in session for final commit after Face Scan (Step 2/2)
-        session['registration_data'] = {
-            'username': username,
-            'password': password,
-            'email': email,
-            'phone': phone,
-        }
-        
-        # 3. Redirect to Face Scan Setup
-        return redirect(url_for('face_scan_page', 
-                                username=username, 
-                                status_message="Registration Step 2/2: Please set up your Face ID.", 
-                                setup=1))
+    # Check if email exists (optional but recommended)
+    existing_email = User.query.filter_by(email=email).first()
+    if existing_email:
+        return render_status_page(
+            f'Email "{email}" already exists. Try logging in.',
+            is_error=True
+        )
+    # -----------------------------------------
 
-    return render_template_string(register_html)
+    # If everything is fine → store in session and go to face scan
+    session['registration_data'] = {
+        'username': username,
+        'password': password,
+        'email': email,
+        'phone': phone,
+    }
+
+    return redirect(url_for(
+        'face_scan_page',
+        username=username,
+        status_message="Registration Step 2/2: Please set up your Face ID.",
+        setup=1
+    ))
+
 
 
 @app.route("/save-reference-face", methods=["POST"])
 def save_reference_face():
-    """Saves the captured face image AND finalizes the registration by committing the user to the database."""
     username = request.form["username"].strip()
     face_data = request.form["face_data"]
-    
+
     registration_data = session.get('registration_data')
-    
+
     if not face_data or len(face_data) < 100:
-        return redirect(url_for('face_scan_page', 
-                                username=username, 
-                                status_message="Failed capture. Please ensure the camera is active and try again.", 
+        return redirect(url_for('face_scan_page',
+                                username=username,
+                                status_message="Failed capture. Please ensure the camera is active and try again.",
                                 setup=1))
 
-    # HANDLE REGISTRATION FINALIZATION (User is ONLY in session)
-    if registration_data and registration_data['username'] == username:
+    # Validate duplicates BEFORE inserting
+    if registration_data:
+        existing_username = User.query.filter_by(username=registration_data['username']).first()
+        existing_email = User.query.filter_by(email=registration_data['email']).first()
+        existing_phone = User.query.filter_by(phone=registration_data['phone']).first()
+
+        if existing_username:
+            return render_status_page(f'Username "{registration_data["username"]}" already exists. Please login instead.')
+
+        if existing_phone:
+            return render_status_page(f'Phone number {registration_data["phone"]} is already registered. Please login instead.')
+
+        if existing_email:
+            return render_status_page(f'Email "{registration_data["email"]}" already exists. Try logging in.')
+
+        # Safe to insert now
         try:
             new_user = User(
                 username=registration_data['username'],
                 password=registration_data['password'],
                 email=registration_data['email'],
                 phone=registration_data['phone'],
-                face_data=face_data # Save the captured face data
+                face_data=face_data
             )
             db.session.add(new_user)
             db.session.commit()
-            
-            # Clear temporary registration data
+
             session.pop('registration_data', None)
-            
-            # NEW REDIRECT for successful registration
+
             return render_status_page(
-                f"✅ Registration successfully completed for **{username}**. You can now log in.", 
-                is_error=False,
+                f"Registration successfully completed for {username}. You can now log in.",
+                is_error=False
             )
+
         except Exception as e:
             db.session.rollback()
             return render_status_page(f"CRITICAL ERROR: Failed to save user to database: {e}")
+
             
     # Fallback for general face data update 
     user = User.query.filter_by(username=username).first()
@@ -685,7 +757,7 @@ def login_password_verify():
         session['logged_in'] = True
         session['username'] = user.username
         session['login_method'] = 'Password'
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('chatbot'))
     else:
         return render_status_page('Invalid username or password.')
 
@@ -720,8 +792,7 @@ def login_otp_send():
             return render_status_page(f"SMS Delivery Failed. Twilio status: {verification.status}")
 
     except Exception as e:
-        return render_status_page(f"Twilio Error: {str(e)}")
-
+        return render_status_page(f"SMS Delivery Failed: Error connecting to Twilio. Status: {e.__class__.__name__}")
 
 # 2. OTP LOGIN (Step 2: Verify)
 @app.route("/login-otp-verify", methods=["GET", "POST"])
@@ -778,7 +849,7 @@ def login_otp_verify_page():
                 session['username'] = username
                 session['login_method'] = 'OTP'
                 session.pop('otp_login_pending', None)
-                return redirect(url_for('dashboard'))
+                return redirect(url_for('chatbot'))
             else:
                 return redirect(url_for('login_otp_verify_page', username=username, status_message=f'Invalid OTP for user "{username}".'))
 
@@ -814,7 +885,7 @@ def login_face_verify():
         session['logged_in'] = True
         session['username'] = user.username
         session['login_method'] = 'Face Scan'
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('chatbot'))
     else:
         # FAILED FACE SCAN
         return render_status_page("Face scan failed! Please try capturing a clearer image.", is_error=True)
@@ -1043,6 +1114,35 @@ def reset_password_page():
 
         except Exception as e:
             return render_status_page(f'Verification Failed: Error connecting to Twilio. Status: {e.__class__.__name__}')
+
+# ---------------- CHATBOT ROUTE ----------------
+@app.route("/chatbot", methods=["GET", "POST"])
+def chatbot():
+    """Chatbot page visible only after login."""
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    # If user just opens the page
+    if request.method == "GET":
+        return render_template("chatbot.html")
+
+    # If user sends a message (AJAX call)
+    data = request.get_json()
+    user_message = data.get("message", "").lower()
+
+    # Simple chatbot logic (you can replace this later with OpenAI or Dialogflow)
+    if "hello" in user_message:
+        reply = "Hi there! 👋 How can I help you today?"
+    elif "login" in user_message:
+        reply = "You’re already logged in securely to the MFA system."
+    elif "bye" in user_message:
+        reply = "Goodbye! Have a great day 😊"
+    elif "who" in user_message:
+        reply = "I’m your MFA chatbot assistant. I help you test and navigate the system."
+    else:
+        reply = "I didn’t quite get that 🤔 — but you can say 'hello', 'login', or 'bye'!"
+
+    return jsonify({"reply": reply})
 
 
 if __name__ == "__main__":

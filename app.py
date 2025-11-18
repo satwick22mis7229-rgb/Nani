@@ -411,7 +411,18 @@ factor_choice_html = """
                 👤 Login with Face Scan
             </button>
         </a>
-        <p style="text-align:center; margin-top:10px;"></p>
+    </div>
+
+    <!-- NEW HOME BUTTON -->
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="/" style="text-decoration: none;">
+            <button style="width: 100%; padding: 12px; font-size: 16px; background-color: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">
+                🏠 Back Home
+            </button>
+        </a>
+    </div>
+
+</div>
 """
 
 

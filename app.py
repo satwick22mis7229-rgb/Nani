@@ -411,76 +411,54 @@ factor_choice_html = """
                 👤 Login with Face Scan
             </button>
         </a>
-
-        <!-- ✅ ONLY ONE FORGOT PASSWORD BUTTON -->
-        <a href="{{ url_for('forgot_password') }}" style="text-decoration: none;">
-            <button style="
-                width: 100%;
-                padding: 12px;
-                font-size: 16px;
-                background-color: #673ab7;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                font-weight: bold;
-                margin-top: 10px;">
-                ❗ Forgot Password
-            </button>
-        </a>
-
-        <p style="text-align: center; margin-top: 20px;">
-            <a href="/" style="color: #dc3545; text-decoration: none;">Back Home</a>
-        </p>
-
-    </div>
-</div>
+        <p style="text-align:center; margin-top:10px;"></p>
 """
 
-# 4. NEW HTML TEMPLATE: OTP Login (Corrected URLs)
+
+# password login
 password_login_html = f"""
 {UI_SCRIPTS}
 <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
     <h2 style="text-align: center; color: #ff5722;">Login with Password</h2>
+
     <form method="POST" action="{{{{ action_url }}}}" style="display: grid; gap: 10px;">
+
         <label>Username:</label>
         <input type="text" name="username" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-        
+
         <label>Password:</label>
         <div class="password-container">
             <input type="password" id="loginPassword" name="password" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box;">
-            <span class="password-toggle" id="loginToggle" onclick="togglePasswordVisibility('loginPassword', 'loginToggle')">👁️</span>
+            <span class="password-toggle" id="loginToggle" onclick="togglePasswordVisibility('loginPassword', 'loginToggle')">&#128065;</span>
         </div>
-        
-        <input type="submit" value="Login" 
+
+        <input type="submit" value="Login"
                style="padding: 10px; background-color: #ff5722; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
     </form>
 
-    <!-- Forgot Password -->
+    <!-- Forgot Password button -->
     <p style="text-align: center; margin-top: 10px;">
-        <a href="{{ url_for('forgot_password') }}" 
-           style="color:#007bff; text-decoration:none; font-weight:bold;">
+        <a href="{{{{ url_for('forgot_password') }}}}" style="color:#007bff; text-decoration:none; font-weight:bold;">
             Forgot Password?
         </a>
     </p>
 
-    <!-- Back to choice -->
     <p style="text-align: center; margin-top: 5px;">
-        <a href="{{ url_for('login_factor_choice') }}">
-            &larr; Back to Factor Choice
-        </a>
+        <a href="{{{{ url_for('login_factor_choice') }}}}">&larr; Back to Factor Choice</a>
     </p>
 
 </div>
 """
-#5. NEW HTML TEMPLATE: OTP Login (Corrected URLs and IDs)
+
 otp_login_html = f"""
 {UI_SCRIPTS}
 <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
     <h2 style="text-align: center; color: #ffc107;">Login with OTP</h2>
+
     <form method="POST" action="{{{{ action_url }}}}" style="display: grid; gap: 10px;">
+
         <label>Username:</label>
-        <input type="text" name="username" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+        <input type="text" name="username" required>
 
         <label>Registered Phone:</label>
         <div class="phone-input-group">
@@ -491,8 +469,7 @@ otp_login_html = f"""
             <input type="hidden" name="phone" id="otpPhoneHiddenInput">
         </div>
 
-        <input type="submit" value="Send OTP" 
-               style="padding: 10px; background-color: #ffc107; color: #333; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
+        <input type="submit" value="Send OTP">
     </form>
 
     <p style="text-align: center; margin-top: 10px;">
@@ -506,7 +483,6 @@ otp_login_html = f"""
     }};
 </script>
 """
-
 
 # 6. NEW HTML TEMPLATE: Face Scan Login (Corrected URLs and IDs)
 face_login_html = f"""
@@ -582,7 +558,7 @@ def register():
         <label>Password:</label>
         <div class="password-container">
             <input type="password" id="registerPassword" name="password" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box;">
-            <span class="password-toggle" id="registerToggle" onclick="togglePasswordVisibility('registerPassword', 'registerToggle')">👁️</span>
+            <span class="password-toggle" id="registerToggle" onclick="togglePasswordVisibility('registerPassword', 'registerToggle')">&#128065;</span>
         </div>
         
         <label>Email:</label>
@@ -1076,67 +1052,78 @@ def reset_password_page():
 <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
     <h2 style="text-align: center; color: #ffc107;">Reset Password</h2>
     <p style="color: #666; text-align: center;">Enter the code sent to your phone and choose a new password.</p>
+
     <form method="POST" style="display: grid; gap: 10px;">
-        <p style="text-align: center; font-weight: bold; margin-bottom: 5px;">User: {{ username or '' }}</p>
-        <input type="hidden" name="username" value="{{ username or '' }}">
-        
+        <p style="text-align: center; font-weight: bold; margin-bottom: 5px;">User: {{{{ username }}}}</p>
+
+        <input type="hidden" name="username" value="{{{{ username }}}}">
+
         <label>Verification Code (OTP):</label>
         <input type="text" name="otp" required maxlength="6" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-        
+
         <label>New Password:</label>
         <div class="password-container">
             <input type="password" id="resetPassword" name="new_password" required style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%; box-sizing: border-box;">
-            <span class="password-toggle" id="resetToggle" onclick="togglePasswordVisibility('resetPassword', 'resetToggle')">👁️</span>
+            <span class="password-toggle" id="resetToggle" onclick="togglePasswordVisibility('resetPassword', 'resetToggle')">&#128065;</span>
         </div>
 
         <input type="submit" value="Reset Password" style="padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px;">
     </form>
+
     <button id="resendResetOtpButton" style="padding: 10px; background-color: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 10px; width: 100%;">Resend OTP</button>
-    <p style="text-align: center; margin-top: 15px;"><a href="{{{{ url_for('login_factor_choice') }}}}">Back to Login Choice</a> | <a href="/">Home</a></p>
+
+    <p style="text-align: center; margin-top: 15px;">
+        <a href="{{{{ url_for('login_factor_choice') }}}}">Back to Login Choice</a> | 
+        <a href="/">Home</a>
+    </p>
 </div>
+
 <script>
     window.onload = function() {
-        startCountdown('resendResetOtpButton', 'reset_resend_time', '{{ username or \'\' }}', 'reset_password_page');
+        startCountdown('resendResetOtpButton', 'reset_resend_time', '{{{{ username }}}}', 'reset_password_page');
     };
 </script>
 """
-    if request.method == "GET":
-        # Render the form, pre-filling the username from the query arg
-        username_from_arg = request.args.get('username', '')
-        status_message = request.args.get('status_message', '')
-        
-        if not username_from_arg:
-            return redirect(url_for('forgot_password'))
 
-        template = reset_password_html.replace('{{ username or \'\' }}', username_from_arg)
-        return render_template_string(template)
+    # --------------------- FIXED INDENTATION STARTS HERE ---------------------
+
+    if request.method == "GET":
+        username_from_arg = request.args.get("username", "")
+        status_message = request.args.get("status_message", "")
+
+        if not username_from_arg:
+            return redirect(url_for("forgot_password"))
+
+        return render_template_string(reset_password_html, username=username_from_arg)
 
     if request.method == "POST":
         username = request.form["username"].strip()
         otp_code = request.form["otp"]
         new_password = request.form["new_password"]
-        
+
         user = User.query.filter_by(username=username).first()
 
         if not user:
             return render_status_page(f'User "{username}" not found.')
-        
-        # Twilio Verify: Check the OTP code
+
         try:
-            verification_check = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID) \
-                .verification_checks \
-                .create(to=user.phone, code=otp_code)
+            verification_check = twilio_client.verify.v2.services(TWILIO_VERIFY_SERVICE_SID).verification_checks.create(
+                to=user.phone, code=otp_code
+            )
 
             if verification_check.status == 'approved':
-                # OTP approved, now reset the password
                 user.password = new_password
                 db.session.commit()
-                return render_status_page(f'Password reset successful for user "{username}". You can now log in.', is_error=False)
+                return render_status_page(
+                    f'Password reset successful for user "{username}". You can now log in.', 
+                    is_error=False
+                )
             else:
                 return redirect(url_for('reset_password_page', username=username, status_message='Invalid OTP. Please try again.'))
 
         except Exception as e:
             return render_status_page(f'Verification Failed: Error connecting to Twilio. Status: {e.__class__.__name__}')
+
 
 # ---------------- CHATBOT ROUTE ----------------
 @app.route("/chatbot", methods=["GET", "POST"])
